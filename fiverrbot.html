@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Reload Link in Popup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+    }
+    #startBtn {
+      background-color: green;
+      color: white;
+    }
+    #pauseBtn {
+      background-color: red;
+      color: white;
+    }
+    #startBtn.running {
+      background-color: lightgreen;
+    }
+    #pauseBtn.paused {
+      background-color: orange;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    #interval {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+    #countdown {
+      font-size: 24px;
+      color: blue;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Auto Reload Link in Popup</h1>
+  <button id="startBtn">Start</button>
+  <button id="pauseBtn" class="paused">Pause</button>
+  <div id="status">Status: Paused</div>
+  <div id="interval">Next interval: -- minutes</div>
+  <div id="countdown">Countdown: --:--</div>
+
+  <script>
+    // Set your specific link here
+    const targetLink = "https://www.fiverr.com/users/willowdigital/manage_gigs";
+
+    // Variables
+    let intervalID;
+    let countdownInterval;
+    let countdownTime; // In seconds
+    let isRunning = false;
+    let currentIntervalIndex = 0; // Track current interval
+    const intervals = [1, 3, 5, 7, 2, 3, 4, 1, 6, 4]; // Custom intervals in minutes
+    let currentOpen = 0; // To track how many times the link has opened
+    let popupWindow = null; // Reference to the popup window
+
+    // Function to update the countdown every second
+    function startCountdown(duration) {
+      countdownTime = duration * 60; // Convert minutes to seconds
+      clearInterval(countdownInterval); // Clear any existing countdown intervals
+
+      countdownInterval = setInterval(() => {
+        const minutes = Math.floor(countdownTime / 60);
+        const seconds = countdownTime % 60;
+        document.getElementById("countdown").innerText = `Countdown: ${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+        countdownTime--;
+
+        if (countdownTime < 0) {
+          clearInterval(countdownInterval); // Stop countdown when time is up
+        }
+      }, 1000);
+    }
+
+    // Function to open the link in a popup window
+    function openPopup() {
+      const width = 800;
+      const height = 600;
+      const left = (screen.width / 2) - (width / 2);
+      const top = (screen.height / 2) - (height / 2);
+
+      if (!popupWindow || popupWindow.closed) {
+        popupWindow = window.open(targetLink, 'FiverrPopup', `width=${width},height=${height},top=${top},left=${left}`);
+      } else {
+        popupWindow.location.href = targetLink; // Reload the page in the popup if it's already open
+      }
+    }
+
+    // Function to start opening links in the popup window
+    function startOpeningLinks() {
+      document.getElementById("status").innerText = "Status: Running";
+      document.getElementById("startBtn").classList.add("running");
+      document.getElementById("pauseBtn").classList.remove("paused");
+
+      function reloadLink() {
+        openPopup(); // Open or reload the link in the popup window
+        console.log(`Reloaded link (${currentOpen + 1})`);
+
+        // Increment count and check if the interval pattern needs to repeat
+        currentOpen++;
+        if (currentOpen === intervals.length) {
+          currentOpen = 0; // Reset to start from the first interval
+        }
+
+        // Move to the next interval
+        const nextInterval = intervals[currentOpen];
+        console.log(`Next reload in ${nextInterval} minutes.`);
+        document.getElementById("interval").innerText = `Next interval: ${nextInterval} minutes`;
+
+        // Start countdown for the next reload
+        startCountdown(nextInterval);
+
+        // Schedule the next reload
+        intervalID = setTimeout(reloadLink, nextInterval * 60 * 1000);
+      }
+
+      // Start by opening the link for the first time
+      const firstInterval = intervals[0];
+      intervalID = setTimeout(reloadLink, firstInterval * 60 * 1000);
+      document.getElementById("interval").innerText = `Next interval: ${firstInterval} minutes`;
+
+      // Start countdown for the first reload
+      startCountdown(firstInterval);
+    }
+
+    // Start button click handler
+    document.getElementById("startBtn").addEventListener("click", () => {
+      if (!isRunning) {
+        startOpeningLinks();
+        isRunning = true;
+        document.getElementById("startBtn").style.backgroundColor = "lightgreen";
+        document.getElementById("status").innerText = "Status: Running";
+      }
+    });
+
+    // Pause button click handler
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      if (isRunning) {
+        clearTimeout(intervalID); // Stop the current timeout or interval
+        clearInterval(countdownInterval); // Stop countdown
+        if (popupWindow && !popupWindow.closed) {
+          popupWindow.close(); // Close the popup window if it's open
+        }
+        isRunning = false;
+        document.getElementById("startBtn").style.backgroundColor = "green";
+        document.getElementById("pauseBtn").style.backgroundColor = "orange";
+        document.getElementById("status").innerText = "Status: Paused";
+        document.getElementById("interval").innerText = "Next interval: -- minutes";
+        document.getElementById("countdown").innerText = "Countdown: --:--";
+        console.log("Process paused.");
+      }
+    });
+  </script>
+</body>
+</html>
